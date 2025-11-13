@@ -67,7 +67,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "${workspaceFolder}/build/release/three_body_gravity_inelastic || echo 'three_body_gravity_inelastic binary not found; run Release Build three_body_gravity_inelastic first'"
+                "${workspaceFolder}/build/release/three_body_gravity_inelastic || echo 'three_body_gravity_inelastic binary not found; run Build three_body_gravity_inelastic first'"
             ],
             "presentation": {
                 "echo": true,
@@ -97,7 +97,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "${workspaceFolder}/build/release/n_body_gravity_inelastic || echo 'n_body_gravity_inelastic binary not found; run Release Build n_body_gravity_inelastic first'"
+                "${workspaceFolder}/build/release/n_body_gravity_inelastic || echo 'n_body_gravity_inelastic binary not found; run Build n_body_gravity_inelastic first'"
             ],
             "presentation": {
                 "echo": true,
@@ -127,7 +127,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "${workspaceFolder}/build/release/two_body_gravity_inelastic || echo 'two_body_gravity_inelastic binary not found; run Release Build two_body_gravity_inelastic first'"
+                "${workspaceFolder}/build/release/two_body_gravity_inelastic || echo 'two_body_gravity_inelastic binary not found; run Build two_body_gravity_inelastic first'"
             ],
             "presentation": {
                 "echo": true,
@@ -135,6 +135,36 @@
                 "focus": false
             },
             "detail": "Run the two_body_gravity_inelastic release binary"
+        },
+        {
+            "label": "Build n_body_electro_elastic",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_electro_elastic.cpp -o ${workspaceFolder}/build/release/n_body_electro_elastic -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"n_body_electro_elastic compiled successfully\""
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Create build/release and compile n_body_electro_elastic release binary"
+        },
+         {
+            "label": "Run n_body_electro_elastic (release)",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "${workspaceFolder}/build/release/n_body_electro_elastic || echo 'n_body_electro_elastic binary not found; run Build n_body_electro_elastic first'"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false
+            },
+            "detail": "Run the n_body_electro_elastic release binary"
         },
         {
             "label": "Remove build folder",
