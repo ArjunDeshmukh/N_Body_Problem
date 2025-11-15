@@ -7,13 +7,15 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/two_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/two_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"two_body_gravity_inelastic debug binary compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/two_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/two_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"two_body_gravity_inelastic debug binary compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/debug and compile two_body_gravity_inelastic debug binary"
         },
         {
@@ -22,13 +24,15 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/three_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/three_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"three_body_gravity_inelastic debug binary compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/three_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/three_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"three_body_gravity_inelastic debug binary compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/debug and compile three_body_gravity_inelastic debug binary"
         },
         {
@@ -37,13 +41,15 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/n_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/n_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"n_body_gravity_inelastic debug binary compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/n_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/n_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_gravity_inelastic debug binary compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/debug and compile n_body_gravity_inelastic debug binary"
         },
         {
@@ -52,13 +58,15 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/three_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/three_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"three_body_gravity_inelastic compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/three_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/three_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"three_body_gravity_inelastic compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/release and compile three_body_gravity_inelastic release binary"
         },
         {
@@ -82,13 +90,15 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/n_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"n_body_gravity_inelastic compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/n_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_gravity_inelastic compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/release and compile n_body_gravity_inelastic release binary"
         },
         {
@@ -112,13 +122,15 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/two_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/two_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"two_body_gravity_inelastic compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/two_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/two_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"two_body_gravity_inelastic compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/release and compile two_body_gravity_inelastic release binary"
         },
         {
@@ -142,16 +154,18 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_electro_elastic.cpp -o ${workspaceFolder}/build/release/n_body_electro_elastic -lsfml-graphics -lsfml-window -lsfml-system && printf '%s\\n' \"n_body_electro_elastic compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_electro_elastic.cpp -o ${workspaceFolder}/build/release/n_body_electro_elastic -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_electro_elastic compiled successfully\""
             ],
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "detail": "Create build/release and compile n_body_electro_elastic release binary"
         },
-         {
+        {
             "label": "Run n_body_electro_elastic (release)",
             "type": "shell",
             "command": "bash",
@@ -165,6 +179,38 @@
                 "focus": false
             },
             "detail": "Run the n_body_electro_elastic release binary"
+        },
+        {
+            "label": "Build n_body_collision",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_collision.cpp -o ${workspaceFolder}/build/release/n_body_collision -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_collision compiled successfully\""
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Create build/release and compile n_body_collision release binary"
+        },
+        {
+            "label": "Run n_body_collision (release)",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "${workspaceFolder}/build/release/n_body_collision || echo 'n_body_collision binary not found; run Build n_body_collision first'"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false
+            },
+            "detail": "Run the n_body_collision release binary"
         },
         {
             "label": "Remove build folder",

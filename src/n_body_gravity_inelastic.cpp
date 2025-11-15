@@ -4,6 +4,8 @@
 #include <random>
 #include <algorithm>
 #include <vector>
+#include "create_window.h"
+
 
 #define G 6.67430e-1
 
@@ -130,8 +132,9 @@ int main()
     const int winW = 1000;
     const int winH = 800;
 
-    sf::RenderWindow window(sf::VideoMode(winW, winH), "N-Body Gravity: Perfectly Inelastic Collisions");
-    window.setFramerateLimit(120);
+    // Create window
+    sf::RenderWindow window;
+    CreateWindow(window, winW, winH, "N-Body Gravity: Perfectly Inelastic Collisions");
 
     // --- Initial conditions (N-body) ---
     int N = 7; // default number of bodies

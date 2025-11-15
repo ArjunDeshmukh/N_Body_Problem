@@ -3,24 +3,32 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include "create_window.h"
 
 // N-body electrostatic simulation (all bodies negative charge)
 // Elastic collisions between bodies (bounce)
 
-struct Vec {
+struct Vec
+{
     double x, y;
     Vec(double _x = 0, double _y = 0) : x(_x), y(_y) {}
     Vec operator+(const Vec &o) const { return Vec(x + o.x, y + o.y); }
     Vec operator-(const Vec &o) const { return Vec(x - o.x, y - o.y); }
     Vec operator*(double s) const { return Vec(x * s, y * s); }
     Vec operator/(double s) const { return Vec(x / s, y / s); }
-    Vec &operator+=(const Vec &o) { x += o.x; y += o.y; return *this; }
+    Vec &operator+=(const Vec &o)
+    {
+        x += o.x;
+        y += o.y;
+        return *this;
+    }
 };
 
 double norm(const Vec &v) { return std::sqrt(v.x * v.x + v.y * v.y); }
-double dot(const Vec &a, const Vec &b) { return a.x*b.x + a.y*b.y; }
+double dot(const Vec &a, const Vec &b) { return a.x * b.x + a.y * b.y; }
 
-struct Body {
+struct Body
+{
     double mass;
     double q; // electric charge (negative)
     Vec pos;
@@ -45,15 +53,20 @@ const double MAX_VEL = 1e7;
 // Cap for initial velocities assigned at system init (pixels/second)
 const double INITIAL_VEL_CAP = 600.0;
 // physical constants for H+ (proton)
-const double PROTON_MASS = 1.67262192369e-27; // kg
+const double PROTON_MASS = 1.67262192369e-27;     // kg
 const double ELEMENTARY_CHARGE = 1.602176634e-19; // C
 
 static void clamp_initial_velocities(std::vector<Body> &bodies)
 {
     for (auto &b : bodies)
     {
-        if (!b.alive) continue;
-        if (!std::isfinite(b.vel.x) || !std::isfinite(b.vel.y)) { b.vel = Vec(0.0, 0.0); continue; }
+        if (!b.alive)
+            continue;
+        if (!std::isfinite(b.vel.x) || !std::isfinite(b.vel.y))
+        {
+            b.vel = Vec(0.0, 0.0);
+            continue;
+        }
         double v = norm(b.vel);
         if (v > INITIAL_VEL_CAP && v > 0.0)
         {
@@ -61,7 +74,6 @@ static void clamp_initial_velocities(std::vector<Body> &bodies)
         }
     }
 }
-
 
 static void init_system(std::vector<Body> &init_bodies, int N, int winW, int winH)
 {
@@ -166,19 +178,24 @@ static void clamp_positions_to_box(std::vector<Body> &bodies, const Vec &center,
     double maxY = center.y + boxHalfH;
     for (auto &b : bodies)
     {
-        if (!b.alive) continue;
-        if (!std::isfinite(b.pos.x) || !std::isfinite(b.pos.y)) continue;
+        if (!b.alive)
+            continue;
+        if (!std::isfinite(b.pos.x) || !std::isfinite(b.pos.y))
+            continue;
         double left = minX + b.radius;
         double right = maxX - b.radius;
         double top = minY + b.radius;
         double bottom = maxY - b.radius;
-        if (b.pos.x < left) b.pos.x = left;
-        if (b.pos.x > right) b.pos.x = right;
-        if (b.pos.y < top) b.pos.y = top;
-        if (b.pos.y > bottom) b.pos.y = bottom;
+        if (b.pos.x < left)
+            b.pos.x = left;
+        if (b.pos.x > right)
+            b.pos.x = right;
+        if (b.pos.y < top)
+            b.pos.y = top;
+        if (b.pos.y > bottom)
+            b.pos.y = bottom;
     }
 }
-
 
 int main()
 {
@@ -188,8 +205,9 @@ int main()
     const int winW = 1000;
     const int winH = 800;
 
-    sf::RenderWindow window(sf::VideoMode(winW, winH), "N-Body Electrostatic: Elastic Collisions");
-    window.setFramerateLimit(120);
+    // Create window
+    sf::RenderWindow window;
+    CreateWindow(window, winW, winH, "N-Body Electrostatic: Elastic Collisions");
 
     // World box half-sizes (in pixels). The visual box remains fixed on screen,
     // but wall collisions are applied to world positions mapped to the current view center.
@@ -200,19 +218,27 @@ int main()
     sf::RectangleShape boxShape(sf::Vector2f((float)(boxHalfW * 2.0), (float)(boxHalfH * 2.0)));
     boxShape.setPosition((float)((winW * 0.5) - boxHalfW), (float)((winH * 0.5) - boxHalfH));
     boxShape.setFillColor(sf::Color::Transparent);
-    boxShape.setOutlineColor(sf::Color(200,200,200));
+    boxShape.setOutlineColor(sf::Color(200, 200, 200));
     boxShape.setOutlineThickness(2.0f);
 
     int N = 10;
     std::vector<Body> bodies;
     std::vector<Body> init_bodies;
-    init_system(init_bodies, N, winW, winH);
+    init_system(init_bodies, N, boxHalfW * 2.0, boxHalfH * 2.0);
     bodies = init_bodies;
     // clamp initial positions to the box centered on the initial center-of-mass
-    Vec cm_init(0,0);
+    Vec cm_init(0, 0);
     double totalM_init = 0.0;
-    for (const auto &b : bodies) { if (b.alive) { cm_init += b.pos * b.mass; totalM_init += b.mass; } }
-    if (totalM_init > 0.0) cm_init = cm_init / totalM_init;
+    for (const auto &b : bodies)
+    {
+        if (b.alive)
+        {
+            cm_init += b.pos * b.mass;
+            totalM_init += b.mass;
+        }
+    }
+    if (totalM_init > 0.0)
+        cm_init = cm_init / totalM_init;
     clamp_positions_to_box(bodies, cm_init, boxHalfW, boxHalfH);
     std::vector<sf::VertexArray> trails(N, sf::VertexArray(sf::LinesStrip));
 
@@ -239,25 +265,43 @@ int main()
                 if (ev.key.code == sf::Keyboard::N)
                 {
                     N = std::min(1000, N + 1);
-                    init_system(init_bodies, N, winW, winH);
+                    init_system(init_bodies, N, boxHalfW * 2.0, boxHalfH * 2.0);
                     bodies = init_bodies;
                     trails.assign(N, sf::VertexArray(sf::LinesStrip));
                     // clamp init positions to the current center-of-mass
-                    Vec cm_new(0,0); double tm = 0;
-                    for (const auto &b : bodies) { if (b.alive) { cm_new += b.pos * b.mass; tm += b.mass; } }
-                    if (tm > 0) cm_new = cm_new / tm;
+                    Vec cm_new(0, 0);
+                    double tm = 0;
+                    for (const auto &b : bodies)
+                    {
+                        if (b.alive)
+                        {
+                            cm_new += b.pos * b.mass;
+                            tm += b.mass;
+                        }
+                    }
+                    if (tm > 0)
+                        cm_new = cm_new / tm;
                     clamp_positions_to_box(bodies, cm_new, boxHalfW, boxHalfH);
                     simTime = 0.0;
                 }
                 if (ev.key.code == sf::Keyboard::M)
                 {
                     N = std::max(2, N - 1);
-                    init_system(init_bodies, N, winW, winH);
+                    init_system(init_bodies, N, boxHalfW * 2.0, boxHalfH * 2.0);
                     bodies = init_bodies;
                     trails.assign(N, sf::VertexArray(sf::LinesStrip));
-                    Vec cm_new2(0,0); double tm2 = 0;
-                    for (const auto &b : bodies) { if (b.alive) { cm_new2 += b.pos * b.mass; tm2 += b.mass; } }
-                    if (tm2 > 0) cm_new2 = cm_new2 / tm2;
+                    Vec cm_new2(0, 0);
+                    double tm2 = 0;
+                    for (const auto &b : bodies)
+                    {
+                        if (b.alive)
+                        {
+                            cm_new2 += b.pos * b.mass;
+                            tm2 += b.mass;
+                        }
+                    }
+                    if (tm2 > 0)
+                        cm_new2 = cm_new2 / tm2;
                     clamp_positions_to_box(bodies, cm_new2, boxHalfW, boxHalfH);
                     simTime = 0.0;
                 }
@@ -265,11 +309,21 @@ int main()
                 {
                     bodies = init_bodies;
                     // clamp reset positions to the box
-                    Vec cm_rst(0,0); double tm_rst = 0;
-                    for (const auto &b : bodies) { if (b.alive) { cm_rst += b.pos * b.mass; tm_rst += b.mass; } }
-                    if (tm_rst > 0) cm_rst = cm_rst / tm_rst;
+                    Vec cm_rst(0, 0);
+                    double tm_rst = 0;
+                    for (const auto &b : bodies)
+                    {
+                        if (b.alive)
+                        {
+                            cm_rst += b.pos * b.mass;
+                            tm_rst += b.mass;
+                        }
+                    }
+                    if (tm_rst > 0)
+                        cm_rst = cm_rst / tm_rst;
                     clamp_positions_to_box(bodies, cm_rst, boxHalfW, boxHalfH);
-                    for (auto &t : trails) t.clear();
+                    for (auto &t : trails)
+                        t.clear();
                     simTime = 0.0;
                 }
                 if (ev.key.code == sf::Keyboard::V)
@@ -277,21 +331,22 @@ int main()
             }
         }
 
-        // center camera on center of mass BEFORE physics so world-box collisions
-        // are computed consistently relative to the camera that will be used.
-        Vec centerOfMass(0, 0);
-        double totalMass = 0;
-        for (const auto &b : bodies)
-        {
-            if (b.alive)
-            {
-                centerOfMass += b.pos * b.mass;
-                totalMass += b.mass;
-            }
-        }
-        if (totalMass > 0) centerOfMass = centerOfMass / totalMass;
-        view.setCenter((float)centerOfMass.x, (float)centerOfMass.y);
-        window.setView(view);
+        // // center camera on center of mass BEFORE physics so world-box collisions
+        // // are computed consistently relative to the camera that will be used.
+        // Vec centerOfMass(0, 0);
+        // double totalMass = 0;
+        // for (const auto &b : bodies)
+        // {
+        //     if (b.alive)
+        //     {
+        //         centerOfMass += b.pos * b.mass;
+        //         totalMass += b.mass;
+        //     }
+        // }
+        // if (totalMass > 0)
+        //     centerOfMass = centerOfMass / totalMass;
+        // view.setCenter((float)centerOfMass.x, (float)centerOfMass.y);
+        // window.setView(view);
 
         if (running)
         {
@@ -309,15 +364,18 @@ int main()
 
                 for (size_t i = 0; i < bodies.size(); ++i)
                 {
-                    if (!bodies[i].alive) continue;
+                    if (!bodies[i].alive)
+                        continue;
                     for (size_t j = i + 1; j < bodies.size(); ++j)
                     {
-                        if (!bodies[j].alive) continue;
+                        if (!bodies[j].alive)
+                            continue;
 
                         Vec r = bodies[j].pos - bodies[i].pos;
                         double d = norm(r);
                         // avoid singularity / huge forces at very small separations
-                        if (d < 1e-12) {
+                        if (d < 1e-12)
+                        {
                             // extremely close — treat as tiny separation to avoid div0
                             d = 1e-12;
                         }
@@ -337,7 +395,8 @@ int main()
                 // integrate and handle elastic collisions with the axis-aligned box
                 for (size_t i = 0; i < bodies.size(); ++i)
                 {
-                    if (!bodies[i].alive) continue;
+                    if (!bodies[i].alive)
+                        continue;
                     bodies[i].vel += acc[i] * dt;
                     bodies[i].pos += bodies[i].vel * dt;
 
@@ -367,7 +426,8 @@ int main()
                     if (trails[i].getVertexCount() > 500)
                     {
                         sf::VertexArray temp(sf::LinesStrip);
-                        for (size_t k = 1; k < trails[i].getVertexCount(); ++k) temp.append(trails[i][k]);
+                        for (size_t k = 1; k < trails[i].getVertexCount(); ++k)
+                            temp.append(trails[i][k]);
                         trails[i] = temp;
                     }
                 }
@@ -377,15 +437,16 @@ int main()
             }
         }
 
-        
-
         window.clear(sf::Color::Black);
 
-        for (auto &t : trails) if (t.getVertexCount() > 1) window.draw(t);
+        for (auto &t : trails)
+            if (t.getVertexCount() > 1)
+                window.draw(t);
 
         for (const auto &b : bodies)
         {
-            if (!b.alive) continue;
+            if (!b.alive)
+                continue;
             sf::CircleShape c((float)b.radius);
             c.setOrigin((float)b.radius, (float)b.radius);
             c.setPosition((float)b.pos.x, (float)b.pos.y);
@@ -394,7 +455,7 @@ int main()
 
             if (showVectors)
             {
-                sf::Vertex line[] = { sf::Vertex(sf::Vector2f((float)b.pos.x, (float)b.pos.y)), sf::Vertex(sf::Vector2f((float)(b.pos.x + b.vel.x), (float)(b.pos.y + b.vel.y))) };
+                sf::Vertex line[] = {sf::Vertex(sf::Vector2f((float)b.pos.x, (float)b.pos.y)), sf::Vertex(sf::Vector2f((float)(b.pos.x + b.vel.x), (float)(b.pos.y + b.vel.y)))};
                 window.draw(line, 2, sf::Lines);
             }
         }
