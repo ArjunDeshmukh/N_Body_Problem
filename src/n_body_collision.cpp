@@ -6,44 +6,8 @@
 #include "create_window.h"
 #include <random>
 #include <iostream>
-
-// N-body electrostatic simulation (all bodies negative charge)
-// Elastic collisions between bodies (bounce)
-
-struct Vec
-{
-    double x, y;
-    Vec(double _x = 0, double _y = 0) : x(_x), y(_y) {}
-    Vec operator+(const Vec &o) const { return Vec(x + o.x, y + o.y); }
-    Vec operator-(const Vec &o) const { return Vec(x - o.x, y - o.y); }
-    Vec operator*(double s) const { return Vec(x * s, y * s); }
-    Vec operator/(double s) const { return Vec(x / s, y / s); }
-    Vec &operator+=(const Vec &o)
-    {
-        x += o.x;
-        y += o.y;
-        return *this;
-    }
-    Vec &operator-=(const Vec &o)
-    {
-        x -= o.x;
-        y -= o.y;
-        return *this;
-    }
-};
-
-double norm(const Vec &v) { return std::sqrt(v.x * v.x + v.y * v.y); }
-double dot(const Vec &a, const Vec &b) { return a.x * b.x + a.y * b.y; }
-
-struct Body
-{
-    double mass;
-    Vec pos;
-    Vec vel;
-    double radius;
-    sf::Color color;
-    bool alive = true;
-};
+#include "body.h"
+#include "vector_math.h"
 
 static void init_system(std::vector<Body> &init_bodies, int N, int winW, int winH)
 {
@@ -56,7 +20,7 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
     const sf::Color palette[6] = {sf::Color::Red, sf::Color::Green, sf::Color::Blue, sf::Color::Yellow, sf::Color::Magenta, sf::Color::Cyan};
 
     static std::mt19937 rng(std::random_device{}());
-    static std::uniform_real_distribution<float> radius(5.0, 10.0);
+    static std::uniform_real_distribution<float> radius(0.1, 0.1);
     static std::uniform_real_distribution<float> mass(5.0, 10.0);
     static std::uniform_real_distribution<float> pos_x(-centerX, centerX);
     static std::uniform_real_distribution<float> pos_y(-centerY, centerY);
@@ -69,7 +33,8 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
         init_bodies[i].pos = Vec(centerX + pos_x(rng), centerY + pos_y(rng));
         init_bodies[i].vel = Vec(vel_x(rng), vel_y(rng));
         init_bodies[i].radius = radius(rng);
-        init_bodies[i].color = palette[i % 6];
+        //init_bodies[i].color = palette[i % 6];
+        init_bodies[i].color = sf::Color::Red;
         init_bodies[i].alive = true;
     }
 
@@ -107,7 +72,7 @@ int main()
     boxShape.setOutlineColor(sf::Color(200, 200, 200));
     boxShape.setOutlineThickness(2.0f);
 
-    int N = 10;
+    int N = 10000;
     std::vector<Body> bodies;
     std::vector<Body> init_bodies;
     init_system(init_bodies, N, boxHalfW * 2.0, boxHalfH * 2.0);

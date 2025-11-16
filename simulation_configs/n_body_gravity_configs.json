@@ -1,0 +1,16 @@
+{
+    "window": {
+        "width": 1000,
+        "height": 800,
+        "fullscreen": false
+    },
+
+    "simulation": {
+        "n_particles": 10,
+        "time_step": 0.01,
+        "softening": 0.0005,
+        "default_sim_speed": 20.0,
+        "collisions": true,
+        "sim_init_type": "FIGURE_EIGHT_CHOREOGRAPHY"
+    }
+}
