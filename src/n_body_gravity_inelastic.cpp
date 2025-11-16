@@ -41,9 +41,8 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
         // conserve momentum (give small recoil to central mass so total momentum = 0)
         init_bodies[0].vel.x = -(init_bodies[1].mass * init_bodies[1].vel.x) / init_bodies[0].mass;
         init_bodies[0].vel.y = -(init_bodies[1].mass * init_bodies[1].vel.y) / init_bodies[0].mass;
-        
     }
-    else if((sim_init_type == SimulationInitType::EQUAL_SIDED_TRIANGLE) && N == 3)
+    else if ((sim_init_type == SimulationInitType::EQUAL_SIDED_TRIANGLE) && N == 3)
     {
         const double centerX = winW * 0.5;
         const double centerY = winH * 0.5;
@@ -60,7 +59,6 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
         init_bodies[0] = {mass_each, {(float)(centerX + r1_unit.x * L_scale), (float)(centerY + r1_unit.y * L_scale)}, {(double)(v1_unit.x * vel_scale), (double)(v1_unit.y * vel_scale)}, 10.0, sf::Color::Red, true};
         init_bodies[1] = {mass_each, {(float)(centerX + r2_unit.x * L_scale), (float)(centerY + r2_unit.y * L_scale)}, {(double)(v2_unit.x * vel_scale), (double)(v2_unit.y * vel_scale)}, 10.0, sf::Color::Blue, true};
         init_bodies[2] = {mass_each, {(float)(centerX + r3_unit.x * L_scale), (float)(centerY + r3_unit.y * L_scale)}, {(double)(v3_unit.x * vel_scale), (double)(v3_unit.y * vel_scale)}, 10.0, sf::Color::Green, true};
-        
     }
     else if (sim_init_type == SimulationInitType::FIGURE_EIGHT_CHOREOGRAPHY)
     {
@@ -96,87 +94,177 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
         }
     }
     else if (sim_init_type == SimulationInitType::TWO_GALAXIES_COLLISION)
+    // ---------- Two-galaxy merger (rotating disks, prograde) ----------
+    // ---------- TWO GALAXIES: Cold rotating exponential disks + bulge ----------
     {
-         // Parameters (tune these)
-        const int N1 = N/2;         // number of particles in galaxy A
-        const int N2 = N - N/2;          // number of particles in galaxy B
-        const double M1 = 5e5;      // total mass of galaxy A
-        const double M2 = 2e5;      // total mass of galaxy B
-        const double sep = 500.0;   // initial center separation along x
-        const double impact = 50.0; // initial y offset (gives non-zero impact parameter)
-        const double softR = 4.0;   // visual/softening base radius
-
-        // Derived velocity scales (approx)
-        const double G_local = UniversalConstants::G_scaled; // use your defined G_scaled
+        const int N1 = N / 2;
+        const int N2 = N - N1;
+        const double M1 = 5e5;
+        const double M2 = 2e5;
+        const double sep = 500.0;
+        const double impact = 50.0;
+        const double softR_visual = 0.6;
+        const double orbit_factor = 0.80;
+        const double G_local = UniversalConstants::G_scaled;
         const double v_escape = std::sqrt(2.0 * G_local * (M1 + M2) / sep);
-        const double orbit_factor = 0.70; // 1.0 = parabolic, <1 = bound (elliptical), >1 = hyperbolic
         const double v_rel = orbit_factor * v_escape;
 
-        // centers and COM velocities (place A left, B right)
-        Vec centerA((double)winW * 0.5 - sep * 0.5, (double)winH * 0.5 - impact * 0.5);
-        Vec centerB((double)winW * 0.5 + sep * 0.5, (double)winH * 0.5 + impact * 0.5);
+        Vec center_screen((double)winW * 0.5, (double)winH * 0.5);
+        Vec centerA = center_screen + Vec(-sep * 0.5, -impact * 0.5);
+        Vec centerB = center_screen + Vec(+sep * 0.5, +impact * 0.5);
 
-        // set COM velocities so relative speed is v_rel, and total momentum = 0
-        // Give B a leftward + small upward velocity, A opposite to conserve momentum
         Vec vB(-v_rel * (M1 / (M1 + M2)), +0.08 * v_rel);
         Vec vA(v_rel * (M2 / (M1 + M2)), -0.08 * v_rel);
 
-        // Fill particles: simple Plummer-ish radial distribution + small velocity dispersion
         std::mt19937_64 rng(1234567);
-        std::uniform_real_distribution<double> uni(0.0, 1.0);
-        auto plummer_radius_sample = [&](double a) -> double
-        {
-            // sample cumulative for Plummer: r = a * (u^{-2/3} - 1)^{-1/2}
-            double u = uni(rng);
-            double denom = std::pow(u, -2.0 / 3.0) - 1.0;
-            if (denom <= 0.0)
-                return 0.0;
-            return a / std::sqrt(denom);
-        };
+        std::uniform_real_distribution<double> uni01(0.0, 1.0);
+        std::normal_distribution<double> gauss0(0.0, 1.0);
 
-        // clear and prepare
+        // disk parameters
+        const double RdA = 50.0;       // disk scale length (A)
+        const double RdB = 40.0;       // disk scale length (B)
+        const double diskFracA = 0.90; // fraction of particles in disk (rest in bulge/halo)
+        const double diskFracB = 0.90;
+
+        // bulge = small central mass soft component for stability
+        const double bulgeMassFraction = 0.18; // fraction of galaxy mass in bulge
+        const double bulgeScale = 10.0;         // bulge scale radius
+
         init_bodies.clear();
         init_bodies.resize(N1 + N2);
 
-        // Galaxy A
-        double aA = 60.0; // Plummer scale length (visual)
+        auto sample_exponential_radius = [&](double Rd, double rmin, double rmax) -> double
+        {
+            // CDF inversion for surface density ~ exp(-r/Rd) -> sample R via -Rd * ln(1-u*(1-exp(-(rmax-rmin)/Rd)))
+            double u = uni01(rng);
+            double factor = 1.0 - std::exp(-(rmax - rmin) / Rd);
+            double rr = -Rd * std::log(1.0 - u * factor) + rmin;
+            return rr;
+        };
+
+        // enclosed mass model (bulge + exponential disk truncated)
+        auto enclosed_mass_diskbulge = [&](double r, double Mtot, double Rd, double Mbulge) -> double
+        {
+            double Mdisk = Mtot - Mbulge;
+            // approximate enclosed mass of exponential disk: M_enc_disk(r) ≈ Mdisk * (1 - (1 + r/Rd)*exp(-r/Rd))
+            double x = r / Rd;
+            double Md_enc = Mdisk * (1.0 - (1.0 + x) * std::exp(-x));
+            // bulge (Hernquist-like simple): M_enc_bulge(r) = Mbulge * r^2/(r+rb)^2 (soft)
+            double rb = bulgeScale;
+            double Mb_enc = Mbulge * (r * r) / ((r + rb) * (r + rb) + 1e-9);
+            double Menc = Md_enc + Mb_enc;
+            // clamp
+            if (Menc < 1.0)
+                Menc = 1.0;
+            return Menc;
+        };
+
+        // ---- Galaxy A: disk + bulge ----
+        double MbulgeA = M1 * bulgeMassFraction;
+        double MhaloA = 0.0; // we skip explicit halo particles; softening approximates it
+
         for (int i = 0; i < N1; ++i)
         {
-            double r = plummer_radius_sample(aA);
-            double theta = 2.0 * M_PI * uni(rng);
-            Vec offset(r * std::cos(theta), r * std::sin(theta));
-            init_bodies[i].pos = centerA + offset;
+            double u = uni01(rng);
+            bool isDisk = (u < diskFracA);
+            double r, theta;
+
+            if (isDisk)
+            {
+                // thin exponential disk: sample radius between inner 2 and outer 300
+                r = sample_exponential_radius(RdA, 2.0, 300.0);
+                theta = 2.0 * M_PI * uni01(rng);
+                // small vertical scatter ignored (2D sim)
+            }
+            else
+            {
+                // bulge/halo-like spherical: simple Plummer-ish
+                double U = uni01(rng);
+                double denom = std::pow(U, -2.0 / 3.0) - 1.0;
+                if (denom <= 0.0)
+                    r = 0.0;
+                else
+                    r = 12.0 / std::sqrt(denom); // tighter bulge
+                theta = 2.0 * M_PI * uni01(rng);
+            }
+
+            double x_local = r * std::cos(theta);
+            double y_local = r * std::sin(theta);
+            init_bodies[i].pos = centerA + Vec(x_local, y_local);
             init_bodies[i].mass = M1 / double(N1);
-            // particle velocity = COM velocity + small dispersion (kept small so system is initially bound)
-            double vel_disp = std::sqrt(G_local * (M1 / 10.0) / (aA + 1.0)); // heuristic
-            init_bodies[i].vel = vA + Vec((uni(rng) - 0.5) * vel_disp, (uni(rng) - 0.5) * vel_disp);
-            // init_bodies[i].radius = softR * std::pow(init_bodies[i].mass, 0.33) * 0.5;
-            init_bodies[i].radius = 0.1;
-            init_bodies[i].color = sf::Color::Red;
+
+            // circular speed from enclosed mass (disk+bulge)
+            double Menc = enclosed_mass_diskbulge(r, M1, RdA, MbulgeA);
+            double vc = std::sqrt(G_local * Menc / (r + 1e-9));
+
+            // tangential direction (counter-clockwise)
+            Vec tang(-std::sin(theta), std::cos(theta));
+
+            // make disk "cold": tiny dispersion fraction
+            double dispFrac = isDisk ? 0.05 : 0.12; // bulge hotter
+            Vec vel_disp((gauss0(rng)) * dispFrac * vc, (gauss0(rng)) * dispFrac * vc);
+
+            // prograde spin aligned with orbital angular momentum
+            init_bodies[i].vel = vA + tang * vc + vel_disp;
+
+            init_bodies[i].radius = softR_visual;
+            //init_bodies[i].color = sf::Color::Red;
+            sf::Color galaxyColor(255, 140, 40);
+            init_bodies[i].color = galaxyColor;
             init_bodies[i].alive = true;
         }
 
-        // Galaxy B
-        double aB = 50.0;
+        // ---- Galaxy B: disk + bulge ----
+        double MbulgeB = M2 * bulgeMassFraction;
+
         for (int j = 0; j < N2; ++j)
         {
             int idx = N1 + j;
-            double r = plummer_radius_sample(aB);
-            double theta = 2.0 * M_PI * uni(rng);
-            Vec offset(r * std::cos(theta), r * std::sin(theta));
-            init_bodies[idx].pos = centerB + offset;
+            double u = uni01(rng);
+            bool isDisk = (u < diskFracB);
+            double r, theta;
+
+            if (isDisk)
+            {
+                r = sample_exponential_radius(RdB, 2.0, 300.0);
+                theta = 2.0 * M_PI * uni01(rng);
+            }
+            else
+            {
+                double U = uni01(rng);
+                double denom = std::pow(U, -2.0 / 3.0) - 1.0;
+                if (denom <= 0.0)
+                    r = 0.0;
+                else
+                    r = 10.0 / std::sqrt(denom);
+                theta = 2.0 * M_PI * uni01(rng);
+            }
+
+            double x_local = r * std::cos(theta);
+            double y_local = r * std::sin(theta);
+            init_bodies[idx].pos = centerB + Vec(x_local, y_local);
             init_bodies[idx].mass = M2 / double(N2);
-            double vel_disp = std::sqrt(G_local * (M2 / 10.0) / (aB + 1.0));
-            init_bodies[idx].vel = vB + Vec((uni(rng) - 0.5) * vel_disp, (uni(rng) - 0.5) * vel_disp);
-            // init_bodies[idx].radius = softR * std::pow(init_bodies[idx].mass, 0.33) * 0.5;
-            init_bodies[idx].radius = 0.1;
-            init_bodies[idx].color = sf::Color::Blue;
+
+            double Menc = enclosed_mass_diskbulge(r, M2, RdB, MbulgeB);
+            double vc = std::sqrt(G_local * Menc / (r + 1e-9));
+
+            Vec tang(-std::sin(theta), std::cos(theta));
+            double dispFrac = isDisk ? 0.02 : 0.12;
+            Vec vel_disp((gauss0(rng)) * dispFrac * vc, (gauss0(rng)) * gauss0(rng) * dispFrac * vc);
+
+            init_bodies[idx].vel = vB + tang * vc + vel_disp;
+
+            init_bodies[idx].radius = softR_visual;
+            //init_bodies[idx].color = sf::Color::Blue;
+            sf::Color galaxyColor(255, 140, 40);
+            init_bodies[idx].color = galaxyColor;
             init_bodies[idx].alive = true;
         }
 
+        // done
         return;
-
     }
+
     else
     {
         // Random distribution
@@ -202,6 +290,121 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
     }
 }
 
+// --------------------------------------------------------------
+// Compute softened accelerations (pairwise)
+// --------------------------------------------------------------
+void computeAccelerations(
+    std::vector<Body> &bodies,
+    std::vector<Vec> &acc,
+    double eps,
+    bool galaxyCollisionMode,
+    double G)
+{
+    size_t N = bodies.size();
+    for (auto &a : acc)
+        a = Vec(0, 0);
+
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!bodies[i].alive)
+            continue;
+
+        for (size_t j = i + 1; j < N; ++j)
+        {
+            if (!bodies[j].alive)
+                continue;
+
+            Vec r = bodies[j].pos - bodies[i].pos;
+            double d2 = r.x * r.x + r.y * r.y;
+
+            // collision merging OFF for galaxy mode
+            if (!galaxyCollisionMode)
+            {
+                double d = std::sqrt(d2);
+                double minD = bodies[i].radius + bodies[j].radius;
+
+                if (d < minD)
+                {
+                    double Mi = bodies[i].mass;
+                    double Mj = bodies[j].mass;
+                    double M = Mi + Mj;
+
+                    // COM merge
+                    bodies[i].pos = (bodies[i].pos * Mi + bodies[j].pos * Mj) / M;
+                    bodies[i].vel = (bodies[i].vel * Mi + bodies[j].vel * Mj) / M;
+                    bodies[i].mass = M;
+
+                    bodies[j].alive = false;
+                    continue;
+                }
+            }
+
+            // softened
+            double dist2_soft = d2 + eps * eps;
+            double invDist = 1.0 / std::sqrt(dist2_soft);
+            double invDist3 = invDist * invDist * invDist;
+
+            double ai = G * bodies[j].mass * invDist3;
+            double aj = G * bodies[i].mass * invDist3;
+
+            acc[i].x += r.x * ai;
+            acc[i].y += r.y * ai;
+
+            acc[j].x -= r.x * aj;
+            acc[j].y -= r.y * aj;
+        }
+    }
+
+    // for (auto &a : acc)
+    // {
+    //     double aMag = std::sqrt(a.x * a.x + a.y * a.y);
+    //     double aMax = 500.0; // set depending on scale
+    //     if (aMag > aMax)
+    //         a *= (aMax / aMag);
+    // }
+}
+
+// --------------------------------------------------------------
+// LEAPFROG INTEGRATOR (kick-drift-kick)
+// --------------------------------------------------------------
+void leapfrogStep(
+    std::vector<Body> &bodies,
+    std::vector<Vec> &acc,
+    double dt,
+    double eps,
+    bool galaxyCollisionMode,
+    double G)
+{
+    size_t N = bodies.size();
+
+    // --- KICK 1: v += a * dt/2 ---
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!bodies[i].alive)
+            continue;
+        bodies[i].vel += acc[i] * (0.5 * dt);
+    }
+
+    // --- DRIFT: x += v * dt ---
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!bodies[i].alive)
+            continue;
+        bodies[i].pos += bodies[i].vel * dt;
+    }
+
+    // recompute accelerations at new positions
+    computeAccelerations(bodies, acc, eps, galaxyCollisionMode, G);
+
+    // --- KICK 2: v += a * dt/2 ---
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!bodies[i].alive)
+            continue;
+        bodies[i].vel += acc[i] * (0.5 * dt);
+    }
+}
+
 int main()
 {
     Config cfg = ConfigLoader::load("/root/projects/N_Body_Problem/simulation_configs/n_body_gravity_configs.json");
@@ -209,6 +412,8 @@ int main()
     // simulation speed: how many fixed `dt` steps to run per frame (can be fractional)
     double simSpeed = cfg.sim.default_sim_speed; // default: 20 dt-steps per frame (faster-than-real-time)
     double simStepsAcc = 0.0;                    // accumulator for fractional steps
+    double softeningLength = cfg.sim.softening;  // for smoothing simSpeed changes
+    bool galaxyCollisionMode = (cfg.sim.sim_init_type == SimulationInitType::TWO_GALAXIES_COLLISION);
     const int winW = cfg.window.width;
     const int winH = cfg.window.height;
 
@@ -233,6 +438,29 @@ int main()
     double simTime = 0.0;
     sf::View view = window.getDefaultView();
 
+    sf::Font font;
+    if (font.loadFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+    {
+        // font loaded
+    }
+    else
+    {
+        std::cerr << "Error loading font\n";
+        return -1;
+    }
+
+    // ---- LEAPFROG INITIAL HALF-KICK ----
+    std::vector<Vec> acc(bodies.size(), Vec(0, 0));
+    computeAccelerations(bodies, acc, softeningLength, galaxyCollisionMode, UniversalConstants::G_scaled);
+
+    // Perform initial half-kick
+    for (size_t i = 0; i < bodies.size(); ++i)
+    {
+        if (!bodies[i].alive)
+            continue;
+        bodies[i].vel += acc[i] * (0.5 * dt);
+    }
+
     while (window.isOpen())
     {
         sf::Event ev;
@@ -252,7 +480,7 @@ int main()
                 {
                     // increase N and reinitialize
                     N = std::min(1000, N + 1);
-                    init_system(init_bodies, N, winW, winH);
+                    init_system(init_bodies, N, winW, winH, cfg.sim.sim_init_type);
                     bodies = init_bodies;
                     trails.assign(N, sf::VertexArray(sf::LinesStrip));
                     simTime = 0.0;
@@ -261,7 +489,7 @@ int main()
                 {
                     // decrease N and reinitialize
                     N = std::max(2, N - 1);
-                    init_system(init_bodies, N, winW, winH);
+                    init_system(init_bodies, N, winW, winH, cfg.sim.sim_init_type);
                     bodies = init_bodies;
                     trails.assign(N, sf::VertexArray(sf::LinesStrip));
                     simTime = 0.0;
@@ -293,62 +521,24 @@ int main()
             simStepsAcc += simSpeed;
             while (simStepsAcc >= 1.0)
             {
-                // compute accelerations based on current positions
-                std::vector<Vec> acc(bodies.size(), Vec(0, 0));
+                // run one leapfrog step
+                leapfrogStep(
+                    bodies,
+                    acc,
+                    dt,
+                    softeningLength,
+                    galaxyCollisionMode,
+                    UniversalConstants::G_scaled);
 
+                // handle trails
                 for (size_t i = 0; i < bodies.size(); ++i)
                 {
                     if (!bodies[i].alive)
                         continue;
-                    for (size_t j = i + 1; j < bodies.size(); ++j)
-                    {
-                        if (!bodies[j].alive)
-                            continue;
-
-                        Vec r = bodies[j].pos - bodies[i].pos;
-                        double d = norm(r);
-                        if (d < 1e-6)
-                            continue;
-                        double minDist = bodies[i].radius + bodies[j].radius;
-
-                        // collision
-                        if (d <= minDist)
-                        {
-                            double M = bodies[i].mass + bodies[j].mass;
-                            Vec v_new = (bodies[i].vel * bodies[i].mass + bodies[j].vel * bodies[j].mass) / M;
-                            Vec p_new = (bodies[i].pos * bodies[i].mass + bodies[j].pos * bodies[j].mass) / M;
-
-                            bodies[i].mass = M;
-                            bodies[i].pos = p_new;
-                            bodies[i].vel = v_new;
-                            bodies[i].radius = std::sqrt(bodies[i].radius * bodies[i].radius + bodies[j].radius * bodies[j].radius) * 1.08;
-
-                            bodies[j].alive = false;
-                            bodies[j].radius = 0.0;
-                            bodies[j].mass = 0.0;
-                            trails[j].clear();
-                            continue;
-                        }
-
-                        Vec dir = r / d;
-                        double a_i = UniversalConstants::G_scaled * bodies[j].mass / (d * d);
-                        double a_j = UniversalConstants::G_scaled * bodies[i].mass / (d * d);
-
-                        acc[i] += dir * a_i;
-                        acc[j] += dir * (-a_j);
-                    }
-                }
-
-                // integrate motion for exactly one dt
-                for (size_t i = 0; i < bodies.size(); ++i)
-                {
-                    if (!bodies[i].alive)
-                        continue;
-                    bodies[i].vel += acc[i] * dt;
-                    bodies[i].pos += bodies[i].vel * dt;
 
                     sf::Vertex v(sf::Vector2f((float)bodies[i].pos.x, (float)bodies[i].pos.y));
                     trails[i].append(v);
+
                     if (trails[i].getVertexCount() > 500)
                     {
                         sf::VertexArray temp(sf::LinesStrip);
@@ -383,7 +573,7 @@ int main()
 
         // draw
         window.clear(sf::Color::Black);
-        
+
         if (showTrails)
         {
             for (auto &t : trails)
@@ -413,21 +603,17 @@ int main()
         // Reset view for HUD text (screen coordinates)
         window.setView(window.getDefaultView());
 
-        sf::Font font;
-        if (font.loadFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-        {
-            sf::Text txt;
-            txt.setFont(font);
-            txt.setCharacterSize(14);
-            txt.setFillColor(sf::Color::White);
-            std::string info = "Space: pause/play | R: reset | N: +1 Body | M: -1 Body |  V: toggle vectors  |  T: toggle trails \n";
-            info += "Sim time: " + std::to_string(simTime).substr(0, 6);
-            info += "  |  Speed: " + std::to_string(simSpeed).substr(0, 6);
-            info += "  |  N: " + std::to_string((int)bodies.size());
-            txt.setString(info);
-            txt.setPosition(8, 8);
-            window.draw(txt);
-        }
+        sf::Text txt;
+        txt.setFont(font);
+        txt.setCharacterSize(14);
+        txt.setFillColor(sf::Color::White);
+        std::string info = "Space: pause/play | R: reset | N: +1 Body | M: -1 Body |  V: toggle vectors  |  T: toggle trails \n";
+        info += "Sim time: " + std::to_string(simTime).substr(0, 6);
+        info += "  |  Speed: " + std::to_string(simSpeed).substr(0, 6);
+        info += "  |  N: " + std::to_string((int)bodies.size());
+        txt.setString(info);
+        txt.setPosition(8, 8);
+        window.draw(txt);
 
         window.display();
     }

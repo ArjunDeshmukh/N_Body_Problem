@@ -28,6 +28,14 @@ struct Vec
         y += o.y;
         return *this;
     }
+
+    // *=
+    Vec &operator*=(double s)
+    {
+        x *= s;
+        y *= s;
+        return *this;
+    }
 };
 
 // scalar * vector  (s * Vec)
