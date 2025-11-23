@@ -99,122 +99,121 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
     {
         const int N1 = N / 2;
         const int N2 = N - N1;
-        const double M1 = 5e5;
-        const double M2 = 2e5;
-        const double sep = 500.0;
-        const double impact = 50.0;
-        const double softR_visual = 0.6;
-        const double orbit_factor = 0.80;
-        const double G_local = UniversalConstants::G_scaled;
-        const double v_escape = std::sqrt(2.0 * G_local * (M1 + M2) / sep);
-        const double v_rel = orbit_factor * v_escape;
 
+        // ★ Beautiful 1:1 spiral–spiral collision
+        const double M1 = 5e5;
+        const double M2 = 5e5;
+
+        const double sep = 600.0;   // larger separation → cleaner first approach
+        const double impact = 80.0; // slight impact parameter → long tidal tails
+        const double softR_visual = 0.6;
+
+        const double G_local = UniversalConstants::G_scaled;
+
+        // Parabolic-like initial orbit
+        const double v_rel = std::sqrt(2.0 * G_local * (M1 + M2) / sep);
+
+        // Centers
         Vec center_screen((double)winW * 0.5, (double)winH * 0.5);
         Vec centerA = center_screen + Vec(-sep * 0.5, -impact * 0.5);
         Vec centerB = center_screen + Vec(+sep * 0.5, +impact * 0.5);
 
-        Vec vB(-v_rel * (M1 / (M1 + M2)), +0.08 * v_rel);
-        Vec vA(v_rel * (M2 / (M1 + M2)), -0.08 * v_rel);
+        // ★ Prograde–prograde velocities (best tidal tails)
+        //    Slight tilt for visual asymmetry
+        Vec vA(+0.58 * v_rel, -0.04 * v_rel);
+        Vec vB(-0.58 * v_rel, +0.04 * v_rel);
 
         std::mt19937_64 rng(1234567);
         std::uniform_real_distribution<double> uni01(0.0, 1.0);
         std::normal_distribution<double> gauss0(0.0, 1.0);
 
-        // disk parameters
-        const double RdA = 50.0;       // disk scale length (A)
-        const double RdB = 40.0;       // disk scale length (B)
-        const double diskFracA = 0.90; // fraction of particles in disk (rest in bulge/halo)
-        const double diskFracB = 0.90;
+        // ★ Updated disk parameters
+        const double RdA = 55.0; // disk scale length
+        const double RdB = 55.0;
 
-        // bulge = small central mass soft component for stability
-        const double bulgeMassFraction = 0.18; // fraction of galaxy mass in bulge
-        const double bulgeScale = 10.0;         // bulge scale radius
+        const double diskFracA = 0.90;
+        const double diskFracB = 0.92; // slightly colder B-disk for asymmetry
+
+        // Bulge parameters
+        const double bulgeMassFraction = 0.18;
+        const double bulgeScale = 10.0;
 
         init_bodies.clear();
         init_bodies.resize(N1 + N2);
 
         auto sample_exponential_radius = [&](double Rd, double rmin, double rmax) -> double
         {
-            // CDF inversion for surface density ~ exp(-r/Rd) -> sample R via -Rd * ln(1-u*(1-exp(-(rmax-rmin)/Rd)))
             double u = uni01(rng);
             double factor = 1.0 - std::exp(-(rmax - rmin) / Rd);
-            double rr = -Rd * std::log(1.0 - u * factor) + rmin;
-            return rr;
+            return -Rd * std::log(1.0 - u * factor) + rmin;
         };
 
-        // enclosed mass model (bulge + exponential disk truncated)
         auto enclosed_mass_diskbulge = [&](double r, double Mtot, double Rd, double Mbulge) -> double
         {
             double Mdisk = Mtot - Mbulge;
-            // approximate enclosed mass of exponential disk: M_enc_disk(r) ≈ Mdisk * (1 - (1 + r/Rd)*exp(-r/Rd))
+
             double x = r / Rd;
             double Md_enc = Mdisk * (1.0 - (1.0 + x) * std::exp(-x));
-            // bulge (Hernquist-like simple): M_enc_bulge(r) = Mbulge * r^2/(r+rb)^2 (soft)
+
             double rb = bulgeScale;
             double Mb_enc = Mbulge * (r * r) / ((r + rb) * (r + rb) + 1e-9);
+
             double Menc = Md_enc + Mb_enc;
-            // clamp
             if (Menc < 1.0)
                 Menc = 1.0;
+
             return Menc;
         };
 
-        // ---- Galaxy A: disk + bulge ----
+        // ---------------------------
+        // Galaxy A
+        // ---------------------------
         double MbulgeA = M1 * bulgeMassFraction;
-        double MhaloA = 0.0; // we skip explicit halo particles; softening approximates it
 
         for (int i = 0; i < N1; ++i)
         {
             double u = uni01(rng);
             bool isDisk = (u < diskFracA);
-            double r, theta;
 
+            double r, theta;
             if (isDisk)
             {
-                // thin exponential disk: sample radius between inner 2 and outer 300
                 r = sample_exponential_radius(RdA, 2.0, 300.0);
-                theta = 2.0 * M_PI * uni01(rng);
-                // small vertical scatter ignored (2D sim)
+                theta = 2 * M_PI * uni01(rng);
             }
             else
             {
-                // bulge/halo-like spherical: simple Plummer-ish
                 double U = uni01(rng);
                 double denom = std::pow(U, -2.0 / 3.0) - 1.0;
-                if (denom <= 0.0)
-                    r = 0.0;
-                else
-                    r = 12.0 / std::sqrt(denom); // tighter bulge
-                theta = 2.0 * M_PI * uni01(rng);
+                r = (denom <= 0.0) ? 0.0 : 12.0 / std::sqrt(denom);
+                theta = 2 * M_PI * uni01(rng);
             }
 
             double x_local = r * std::cos(theta);
             double y_local = r * std::sin(theta);
+
             init_bodies[i].pos = centerA + Vec(x_local, y_local);
             init_bodies[i].mass = M1 / double(N1);
 
-            // circular speed from enclosed mass (disk+bulge)
             double Menc = enclosed_mass_diskbulge(r, M1, RdA, MbulgeA);
             double vc = std::sqrt(G_local * Menc / (r + 1e-9));
 
-            // tangential direction (counter-clockwise)
             Vec tang(-std::sin(theta), std::cos(theta));
 
-            // make disk "cold": tiny dispersion fraction
-            double dispFrac = isDisk ? 0.05 : 0.12; // bulge hotter
-            Vec vel_disp((gauss0(rng)) * dispFrac * vc, (gauss0(rng)) * dispFrac * vc);
+            double dispFrac = isDisk ? 0.05 : 0.12;
+            Vec vel_disp(gauss0(rng) * dispFrac * vc,
+                         gauss0(rng) * dispFrac * vc);
 
-            // prograde spin aligned with orbital angular momentum
             init_bodies[i].vel = vA + tang * vc + vel_disp;
 
             init_bodies[i].radius = softR_visual;
-            //init_bodies[i].color = sf::Color::Red;
-            sf::Color galaxyColor(255, 140, 40);
-            init_bodies[i].color = galaxyColor;
+            init_bodies[i].color = sf::Color(255, 140, 40);
             init_bodies[i].alive = true;
         }
 
-        // ---- Galaxy B: disk + bulge ----
+        // ---------------------------
+        // Galaxy B
+        // ---------------------------
         double MbulgeB = M2 * bulgeMassFraction;
 
         for (int j = 0; j < N2; ++j)
@@ -222,26 +221,24 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
             int idx = N1 + j;
             double u = uni01(rng);
             bool isDisk = (u < diskFracB);
-            double r, theta;
 
+            double r, theta;
             if (isDisk)
             {
                 r = sample_exponential_radius(RdB, 2.0, 300.0);
-                theta = 2.0 * M_PI * uni01(rng);
+                theta = 2 * M_PI * uni01(rng);
             }
             else
             {
                 double U = uni01(rng);
                 double denom = std::pow(U, -2.0 / 3.0) - 1.0;
-                if (denom <= 0.0)
-                    r = 0.0;
-                else
-                    r = 10.0 / std::sqrt(denom);
-                theta = 2.0 * M_PI * uni01(rng);
+                r = (denom <= 0.0) ? 0.0 : 10.0 / std::sqrt(denom);
+                theta = 2 * M_PI * uni01(rng);
             }
 
             double x_local = r * std::cos(theta);
             double y_local = r * std::sin(theta);
+
             init_bodies[idx].pos = centerB + Vec(x_local, y_local);
             init_bodies[idx].mass = M2 / double(N2);
 
@@ -249,19 +246,18 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
             double vc = std::sqrt(G_local * Menc / (r + 1e-9));
 
             Vec tang(-std::sin(theta), std::cos(theta));
+
             double dispFrac = isDisk ? 0.02 : 0.12;
-            Vec vel_disp((gauss0(rng)) * dispFrac * vc, (gauss0(rng)) * gauss0(rng) * dispFrac * vc);
+            Vec vel_disp(gauss0(rng) * dispFrac * vc,
+                         gauss0(rng) * dispFrac * vc);
 
             init_bodies[idx].vel = vB + tang * vc + vel_disp;
 
             init_bodies[idx].radius = softR_visual;
-            //init_bodies[idx].color = sf::Color::Blue;
-            sf::Color galaxyColor(255, 140, 40);
-            init_bodies[idx].color = galaxyColor;
+            init_bodies[idx].color = sf::Color(255, 140, 40);
             init_bodies[idx].alive = true;
         }
 
-        // done
         return;
     }
 
@@ -405,6 +401,50 @@ void leapfrogStep(
     }
 }
 
+double computeKineticEnergy(const std::vector<Body> &bodies)
+{
+    double KE = 0.0;
+    for (const auto &b : bodies)
+    {
+        if (!b.alive)
+            continue;
+        double v2 = b.vel.x * b.vel.x + b.vel.y * b.vel.y;
+        KE += 0.5 * b.mass * v2;
+    }
+    return KE;
+}
+
+double computePotentialEnergy(
+    const std::vector<Body> &bodies,
+    double eps,
+    double G)
+{
+    double PE = 0.0;
+    size_t N = bodies.size();
+    double eps2 = eps * eps;
+
+    for (size_t i = 0; i < N; ++i)
+    {
+        if (!bodies[i].alive)
+            continue;
+
+        for (size_t j = i + 1; j < N; ++j)
+        {
+            if (!bodies[j].alive)
+                continue;
+
+            Vec r = bodies[j].pos - bodies[i].pos;
+            double d2 = r.x * r.x + r.y * r.y + eps2;
+            double dist = std::sqrt(d2);
+
+            // Plummer-softened PE = -G m1 m2 / sqrt(r^2 + eps^2)
+            PE += -G * bodies[i].mass * bodies[j].mass / dist;
+        }
+    }
+
+    return PE;
+}
+
 int main()
 {
     Config cfg = ConfigLoader::load("/root/projects/N_Body_Problem/simulation_configs/n_body_gravity_configs.json");
@@ -416,6 +456,10 @@ int main()
     bool galaxyCollisionMode = (cfg.sim.sim_init_type == SimulationInitType::TWO_GALAXIES_COLLISION);
     const int winW = cfg.window.width;
     const int winH = cfg.window.height;
+
+    double totalEnergy = 0.0;
+    double kineticEnergy = 0.0;
+    double potentialEnergy = 0.0;
 
     // Create window
     sf::RenderWindow window;
@@ -548,6 +592,10 @@ int main()
                     }
                 }
 
+                // ---- ENERGY CALCULATION ----
+                kineticEnergy = computeKineticEnergy(bodies);
+                potentialEnergy = computePotentialEnergy(bodies, softeningLength, UniversalConstants::G_scaled);
+                totalEnergy = kineticEnergy + potentialEnergy;
                 simTime += dt;
                 simStepsAcc -= 1.0;
             }
@@ -611,6 +659,9 @@ int main()
         info += "Sim time: " + std::to_string(simTime).substr(0, 6);
         info += "  |  Speed: " + std::to_string(simSpeed).substr(0, 6);
         info += "  |  N: " + std::to_string((int)bodies.size());
+        info += "\nKE: " + std::to_string(kineticEnergy).substr(0, 10);
+        info += "  |  PE: " + std::to_string(potentialEnergy).substr(0, 10);
+        info += "  |  Total E: " + std::to_string(totalEnergy).substr(0, 10);
         txt.setString(info);
         txt.setPosition(8, 8);
         window.draw(txt);

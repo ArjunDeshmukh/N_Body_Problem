@@ -48,8 +48,8 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
     if (N == 2)
     {
         // central massive negatively charged body (use proton mass and elementary charge)
-        init_bodies[0].mass = ;
-        init_bodies[0].q = -;
+        init_bodies[0].mass = UniversalConstants::PROTON_MASS;
+        init_bodies[0].q = -UniversalConstants::ELEMENTARY_CHARGE;
         init_bodies[0].pos = {(double)(winW * 0.5), (double)(winH * 0.5)};
         init_bodies[0].vel = {0.0, 0.0};
         init_bodies[0].radius = 22.0;
@@ -58,11 +58,11 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
 
         // satellite
         const double orbitR = 200.0;
-        init_bodies[1].mass = ;
-        init_bodies[1].q = -;
+        init_bodies[1].mass = UniversalConstants::PROTON_MASS;
+        init_bodies[1].q = -UniversalConstants::ELEMENTARY_CHARGE;
         init_bodies[1].pos = {init_bodies[0].pos.x + orbitR, init_bodies[0].pos.y};
         // approximate circular speed from central attraction/repulsion magnitude
-        double v_circ = std::sqrt(std::fabs( * init_bodies[0].q * init_bodies[1].q) / (init_bodies[1].mass * orbitR));
+        double v_circ = std::sqrt(std::fabs( UniversalConstants::COULOMB_CONSTANT * init_bodies[0].q * init_bodies[1].q) / (init_bodies[1].mass * orbitR));
         v_circ *= VISUAL_VEL_SCALE;
         init_bodies[1].vel = {0.0, -v_circ};
         init_bodies[1].radius = 8.0;
@@ -83,18 +83,19 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
         const double centerX = winW * 0.5;
         const double centerY = winH * 0.5;
         const double L_scale = 80.0;
-        const double mass_each = ;
+        const double mass_each = UniversalConstants::PROTON_MASS;
         const Vec r1_unit(0.97000436, -0.24308753);
         const Vec r2_unit(-0.97000436, 0.24308753);
         const Vec r3_unit(0.0, 0.0);
         const Vec v1_unit(0.4662036850, 0.4323657300);
         const Vec v2_unit(0.4662036850, 0.4323657300);
         const Vec v3_unit(-0.93240737, -0.86473146);
-        const double vel_scale = std::sqrt(( * std::fabs()) / L_scale) * VISUAL_VEL_SCALE;
+        // Velocity scale: derived from K_c * q^2 / (m * L_scale)
+        const double vel_scale = std::sqrt(( UniversalConstants::COULOMB_CONSTANT * std::fabs(UniversalConstants::ELEMENTARY_CHARGE * UniversalConstants::ELEMENTARY_CHARGE)) / (UniversalConstants::PROTON_MASS * L_scale)) * VISUAL_VEL_SCALE;
 
-        init_bodies[0] = Body(mass_each, -, {(double)(centerX + r1_unit.x * L_scale), (double)(centerY + r1_unit.y * L_scale)}, {(double)(v1_unit.x * vel_scale), (double)(v1_unit.y * vel_scale)}, 10.0, sf::Color::Red, true);
-        init_bodies[1] = Body(mass_each, -, {(double)(centerX + r2_unit.x * L_scale), (double)(centerY + r2_unit.y * L_scale)}, {(double)(v2_unit.x * vel_scale), (double)(v2_unit.y * vel_scale)}, 10.0, sf::Color::Blue, true);
-        init_bodies[2] = Body(mass_each, -, {(double)(centerX + r3_unit.x * L_scale), (double)(centerY + r3_unit.y * L_scale)}, {(double)(v3_unit.x * vel_scale), (double)(v3_unit.y * vel_scale)}, 10.0, sf::Color::Green, true);
+        init_bodies[0] = Body(mass_each, -UniversalConstants::ELEMENTARY_CHARGE, {(double)(centerX + r1_unit.x * L_scale), (double)(centerY + r1_unit.y * L_scale)}, {(double)(v1_unit.x * vel_scale), (double)(v1_unit.y * vel_scale)}, 10.0, sf::Color::Red, true);
+        init_bodies[1] = Body(mass_each, -UniversalConstants::ELEMENTARY_CHARGE, {(double)(centerX + r2_unit.x * L_scale), (double)(centerY + r2_unit.y * L_scale)}, {(double)(v2_unit.x * vel_scale), (double)(v2_unit.y * vel_scale)}, 10.0, sf::Color::Blue, true);
+        init_bodies[2] = Body(mass_each, -UniversalConstants::ELEMENTARY_CHARGE, {(double)(centerX + r3_unit.x * L_scale), (double)(centerY + r3_unit.y * L_scale)}, {(double)(v3_unit.x * vel_scale), (double)(v3_unit.y * vel_scale)}, 10.0, sf::Color::Green, true);
         // clamp initial velocities
         clamp_initial_velocities(init_bodies);
         return;
@@ -106,9 +107,9 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
     const double centerY = winH * 0.5;
     const double L_scale = std::min(winW, winH) * 0.32;
     // use proton mass and elementary charge (negative sign for electron-like negative species)
-    const double mass_each = ;
-    const double q_scale = -; // negative charge (Coulombs)
-    const double vel_scale = std::sqrt(( * std::fabs(q_scale)) / L_scale) * VISUAL_VEL_SCALE;
+    const double mass_each = UniversalConstants::PROTON_MASS;
+    const double q_scale = -UniversalConstants::ELEMENTARY_CHARGE; // negative charge (Coulombs)
+    const double vel_scale = std::sqrt(( UniversalConstants::COULOMB_CONSTANT * std::fabs(q_scale * q_scale)) / (mass_each * L_scale)) * VISUAL_VEL_SCALE;
 
     const sf::Color palette[6] = {sf::Color::Red, sf::Color::Green, sf::Color::Blue, sf::Color::Yellow, sf::Color::Magenta, sf::Color::Cyan};
 
@@ -349,11 +350,11 @@ int main()
                         // Coulomb acceleration (repulsion/attraction). No collision handling;
                         // let electrostatic forces (repulsion since charges are same-sign) govern motion.
                         Vec dir = r / d;
-                        // Coulomb acceleration: a_i += - * q_i * q_j * dir / (d^2 * m_i)
+                        // Coulomb acceleration: a_i += - k_e * q_i * q_j * dir / (d^2 * m_i)
                         double qq = bodies[i].q * bodies[j].q;
-                        double factor =  * qq / (d * d);
-                        acc[i] += dir * (-factor / bodies[i].mass);
-                        acc[j] += dir * (+factor / bodies[j].mass);
+                        double factor = qq / (d * d);
+                        acc[i] += dir * (-UniversalConstants::COULOMB_CONSTANT * factor / bodies[i].mass);
+                        acc[j] += dir * (+UniversalConstants::COULOMB_CONSTANT * factor / bodies[j].mass);
                     }
                 }
 

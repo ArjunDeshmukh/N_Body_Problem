@@ -2,12 +2,12 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Debug Build n_body_gravity_inelastic",
+            "label": "Debug Build N Body Gravity Simulation",
             "type": "shell",
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/debug && g++ -std=c++17 -g -O0 -Wall -Wextra ${workspaceFolder}/src/n_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/debug/n_body_gravity_inelastic_debug -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_gravity_inelastic debug binary compiled successfully\""
+                "mkdir -p ${workspaceFolder}/build/debug && cmake -S ${workspaceFolder}/src/gravity_sim -B ${workspaceFolder}/build/debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/debug -j16"
             ],
             "group": {
                 "kind": "build",
@@ -24,7 +24,24 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_gravity_inelastic.cpp -o ${workspaceFolder}/build/release/n_body_gravity_inelastic -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_gravity_inelastic compiled successfully\n\" && ${workspaceFolder}/build/release/n_body_gravity_inelastic"
+                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/gravity_sim -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/n_body_gravity_inelastic"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Create build/release and compile n_body_gravity_inelastic release binary"
+        },
+                {
+            "label": "GPU Build & Run N Body Gravity Simulation",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/gravity_sim_gpu -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.6/bin/nvcc && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/gpu_n_body_gravity_inelastic"
             ],
             "group": {
                 "kind": "build",
@@ -41,7 +58,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_electro_elastic.cpp -o ${workspaceFolder}/build/release/n_body_electro_elastic -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_electro_elastic compiled successfully\n\" && ${workspaceFolder}/build/release/n_body_electro_elastic"
+                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/electro_static_sim -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/n_body_electro_elastic"
             ],
             "group": {
                 "kind": "build",
@@ -58,7 +75,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && g++ -std=c++17 -O3 ${workspaceFolder}/src/n_body_collision.cpp -o ${workspaceFolder}/build/release/n_body_collision -lsfml-graphics -lsfml-window -lsfml-system -lX11 -lXext -lXrandr && printf '%s\\n' \"n_body_collision compiled successfully\n\" && ${workspaceFolder}/build/release/n_body_collision"
+                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/hard_sphere_molecular_dyn -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/n_body_collision"
             ],
             "group": {
                 "kind": "build",
@@ -75,7 +92,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "rm -rf ${workspaceFolder}/build && printf '%s\\n' \"Removed build folder\n\""
+                "rm -rf ${workspaceFolder}/build"
             ],
             "presentation": {
                 "echo": true,

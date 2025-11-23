@@ -20,7 +20,7 @@ static void init_system(std::vector<Body> &init_bodies, int N, int winW, int win
     const sf::Color palette[6] = {sf::Color::Red, sf::Color::Green, sf::Color::Blue, sf::Color::Yellow, sf::Color::Magenta, sf::Color::Cyan};
 
     static std::mt19937 rng(std::random_device{}());
-    static std::uniform_real_distribution<float> radius(0.1, 0.1);
+    static std::uniform_real_distribution<float> radius(1, 10);
     static std::uniform_real_distribution<float> mass(5.0, 10.0);
     static std::uniform_real_distribution<float> pos_x(-centerX, centerX);
     static std::uniform_real_distribution<float> pos_y(-centerY, centerY);
@@ -72,7 +72,7 @@ int main()
     boxShape.setOutlineColor(sf::Color(200, 200, 200));
     boxShape.setOutlineThickness(2.0f);
 
-    int N = 10000;
+    int N = 100;
     std::vector<Body> bodies;
     std::vector<Body> init_bodies;
     init_system(init_bodies, N, boxHalfW * 2.0, boxHalfH * 2.0);
