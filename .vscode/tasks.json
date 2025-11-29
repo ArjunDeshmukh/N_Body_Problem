@@ -70,12 +70,12 @@
             "detail": "Create build/release and compile n_body_electro_elastic release binary"
         },
         {
-            "label": "Build & Run N Body Collision Simulation ",
+            "label": "Build & Run Particles in a Box Simulation ",
             "type": "shell",
             "command": "bash",
             "args": [
                 "-c",
-                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/hard_sphere_molecular_dyn -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/n_body_collision"
+                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/hard_sphere_molecular_dyn/particles_in_a_box -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/particles_in_a_box"
             ],
             "group": {
                 "kind": "build",
@@ -84,7 +84,24 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Create build/release and compile n_body_collision release binary"
+            "detail": "Create build/release and compile particles_in_a_box release binary"
+        },
+                {
+            "label": "Build & Run Osmosis Simulation ",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "mkdir -p ${workspaceFolder}/build/release && cmake -S ${workspaceFolder}/src/hard_sphere_molecular_dyn/osmosis -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ && cmake --build /root/projects/N_Body_Problem/build/release -j16 && ${workspaceFolder}/build/release/osmosis"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Create build/release and compile particles_in_a_box release binary"
         },
         {
             "label": "Remove build folder",

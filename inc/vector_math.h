@@ -29,6 +29,14 @@ struct Vec
         return *this;
     }
 
+    // +=
+    Vec &operator-=(const Vec &o)
+    {
+        x -= o.x;
+        y -= o.y;
+        return *this;
+    }
+
     // *=
     Vec &operator*=(double s)
     {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(n_body_collision)
+project(particles_in_a_box)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -23,16 +23,16 @@ find_package(SFML 2.5 COMPONENTS graphics window system  REQUIRED)
 find_package(X11 REQUIRED)
 
 # ----------------------------------------------------
-# Create executable for n_body_collision
+# Create executable for particles_in_a_box
 # ----------------------------------------------------
-add_executable(n_body_collision "${CMAKE_SOURCE_DIR}/n_body_collision.cpp")
+add_executable(particles_in_a_box "${CMAKE_SOURCE_DIR}/particles_in_a_box.cpp")
 
 # ----------------------------------------------------
 # Include directories
 # ----------------------------------------------------
-target_include_directories(n_body_collision PRIVATE "../../inc")
+target_include_directories(particles_in_a_box PRIVATE "../../.../inc")
 
-target_link_libraries(n_body_collision
+target_link_libraries(particles_in_a_box
     sfml-graphics
     sfml-window
     sfml-system
