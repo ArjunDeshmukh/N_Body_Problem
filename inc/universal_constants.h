@@ -7,6 +7,7 @@ namespace UniversalConstants
 {
     constexpr double G = 6.67430e-11; // Gravitational constant, units: m^3 kg^-1 s^-2
     constexpr double G_scaled = 10.0; // Scaled gravitational constant for simulation
+    constexpr double G_ACCELERATION = 9.80665; // Standard gravity, units: m/s^2
     constexpr double EPS0 = 8.854187817e-12; // Vacuum permittivity, units: F/m (farads per meter)
     constexpr double COULOMB_CONSTANT = 1.0 / (4.0 * M_PI * EPS0); // Coulomb's constant, units: N m^2 C^-2
     // physical constants for H+ (proton)

@@ -8,6 +8,7 @@
 #include <iostream>
 #include "body.h"
 #include "vector_math.h"
+#include "universal_constants.h"
 
 static void init_system(std::vector<Body> &init_bodies, int N, int winW, int winH)
 {
@@ -53,6 +54,12 @@ int main()
     const int winH = 800;
     const double e_obj = 0.9;
     const double e_wall = 0.8;
+
+    // Positional correction parameters (Baumgarte-style)
+    const double POS_SLOP = 0.01;    // penetration tolerated
+    const double POS_PERCENT = 0.2;  // fraction of penetration corrected each frame
+
+    const bool gravity_on = true;
 
     double vel_vector_draw_scale = 10.0;
 
@@ -156,41 +163,62 @@ int main()
 
                 std::vector<Vec> impulse_vec(bodies.size(), Vec(0, 0));
 
-                // handle partially elastic collisions with the axis-aligned box and objects with each other
+                /*
+                Calculate effect of gravity
+                Handle partially elastic collisions with the axis-aligned box and objects with each other
+                */
                 for (size_t i = 0; i < bodies.size(); ++i)
                 {
                     if (!bodies[i].alive)
                         continue;
 
+                    // Apply gravity acceleration
+                    if(gravity_on) impulse_vec[i].y += UniversalConstants::G_ACCELERATION * dt;
+ 
+                    double wall_penetration = 0.0;
                     // wall collisions: fully elastic (reverse perpendicular velocity)
                     if ((bodies[i].pos.x - bodies[i].radius) < worldBoxMinX)
                     {
                         Vec temp_impulse_vec = Vec(-(1 + e_wall) * bodies[i].vel.x, 0.0);
                         impulse_vec[i] += temp_impulse_vec;
-                        bodies[i].pos.x = worldBoxMinX + bodies[i].radius;
-                        // bodies[i].vel.x = -bodies[i].vel.x;
+                        wall_penetration = worldBoxMinX - (bodies[i].pos.x - bodies[i].radius);
+                         if (wall_penetration > POS_SLOP) {
+                            double correction = POS_PERCENT * (wall_penetration - POS_SLOP);
+                            bodies[i].pos += Vec(1, 0) * correction;
+                         }
+                        
+                       
                     }
                     else if ((bodies[i].pos.x + bodies[i].radius) > worldBoxMaxX)
                     {
                         Vec temp_impulse_vec = Vec(-(1 + e_wall) * bodies[i].vel.x, 0.0);
                         impulse_vec[i] += temp_impulse_vec;
-                        bodies[i].pos.x = worldBoxMaxX - bodies[i].radius;
-                        // bodies[i].vel.x = -bodies[i].vel.x;
+                        wall_penetration = (bodies[i].pos.x + bodies[i].radius) - worldBoxMaxX;
+                        if (wall_penetration > POS_SLOP) {
+                            double correction = POS_PERCENT * (wall_penetration - POS_SLOP);
+                            bodies[i].pos += Vec(-1, 0) * correction;
+                         }
                     }
 
                     if ((bodies[i].pos.y - bodies[i].radius) < worldBoxMinY)
                     {
                         Vec temp_impulse_vec = Vec(0.0, -(1 + e_wall) * bodies[i].vel.y);
                         impulse_vec[i] += temp_impulse_vec;
-                        bodies[i].pos.y = worldBoxMinY + bodies[i].radius;
-                        // bodies[i].vel.y = -bodies[i].vel.y;
+                        wall_penetration = worldBoxMinY - (bodies[i].pos.y - bodies[i].radius);
+                        if (wall_penetration > POS_SLOP) {
+                            double correction = POS_PERCENT * (wall_penetration - POS_SLOP);
+                            bodies[i].pos += Vec(0, 1) * correction;
+                         }
                     }
                     else if ((bodies[i].pos.y + bodies[i].radius) > worldBoxMaxY)
                     {
                         Vec temp_impulse_vec = Vec(0.0, -(1 + e_wall) * bodies[i].vel.y);
                         impulse_vec[i] += temp_impulse_vec;
-                        bodies[i].pos.y = worldBoxMaxY - bodies[i].radius;
-                        // bodies[i].vel.y = -bodies[i].vel.y;
+                        wall_penetration = (bodies[i].pos.y + bodies[i].radius) - worldBoxMaxY;
+                        if (wall_penetration > POS_SLOP) {
+                            double correction = POS_PERCENT * (wall_penetration - POS_SLOP);
+                            bodies[i].pos += Vec(0, -1) * correction;
+                         }
                     }
 
                     // Collisions of objects with each other
@@ -213,13 +241,23 @@ int main()
                             double mj = bodies[j].mass;
                             double mi = bodies[i].mass;
 
+                            if(vel_rel_mag_along_normal < 0) continue; // already separating
+
                             double impulse_scalar = -(1 + e_obj) * vel_rel_mag_along_normal / (1 / mj + 1 / mi);
 
                             impulse_vec[i] += norm_r * (impulse_scalar / mi);
                             impulse_vec[j] += norm_r * (-impulse_scalar / mj);
 
-                            bodies[i].pos += norm_r * (-1.0 * (minDist - d));
-                            bodies[j].pos += norm_r * ( 1.0 * (minDist - d));
+                            // --- POSITIONAL CORRECTION (Baumgarte-style) ---
+                            double penetration = minDist - d;
+
+                            if (penetration > POS_SLOP) {
+                                double correctionMag = POS_PERCENT * (penetration - POS_SLOP) / (1.0/mi + 1.0/mj);
+                                Vec corr = norm_r * correctionMag;
+
+                                bodies[i].pos -= corr * (1.0/mi);
+                                bodies[j].pos += corr * (1.0/mj);
+                            }
                         }
                     }
                 }

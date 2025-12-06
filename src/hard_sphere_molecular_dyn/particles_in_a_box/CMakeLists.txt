@@ -30,7 +30,7 @@ add_executable(particles_in_a_box "${CMAKE_SOURCE_DIR}/particles_in_a_box.cpp")
 # ----------------------------------------------------
 # Include directories
 # ----------------------------------------------------
-target_include_directories(particles_in_a_box PRIVATE "../../.../inc")
+target_include_directories(particles_in_a_box PRIVATE "../../../inc")
 
 target_link_libraries(particles_in_a_box
     sfml-graphics
